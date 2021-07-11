@@ -62,5 +62,24 @@ app.post("/presupuesto", async (req, res) => {
     //traer lista 
 
     app.get ("/presupuesto", async (req, res)=>{
+      try{
+        const respuesta = await query ("select * from presupuesto");
+        res.status(200).json(respuesta);
+      } catch (e) {
+        res.status(413).send("error" + e);
+      }
+        
+    });
+
+    //traer solo ingresos o egresos
+    app.get ("/presupuesto/:ingreso", async (req, res)=>{
+      try{
+        const respuesta = await query ("select * from presupuesto where ingreso = ?", [req.params.ingreso]);
+        res.status(200).json(respuesta);
+      } catch (e) {
+        res.status(413).send("error" + e);
+      }
         
     })
+
+    
