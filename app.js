@@ -3,10 +3,15 @@ const mysql = require("mysql");
 const cors = require("cors");
 const util = require("util");
 const unless = require("express-unless");
+const { send } = require("process");
 const app = express();
 
+app.use(express.urlencoded({extended:true}));
 app.use(express.json());
 app.use(cors());
+
+
+
 
 //conexion con la base de datos //
 
@@ -23,6 +28,7 @@ var conexion = mysql.createConnection({
     database: "presupuesto_personal"
 });
 conexion.connect();
+
 const query = util.promisify(conexion.query).bind(conexion);
 
 
@@ -71,15 +77,32 @@ app.post("/presupuesto", async (req, res) => {
         
     });
 
-    //traer solo ingresos o egresos
-    app.get ("/presupuesto/:ingreso", async (req, res)=>{
+    //traer solo un resultado especifico 
+    app.get("/presupuesto/:id", async (req, res)=> {
       try{
-        const respuesta = await query ("select * from presupuesto where ingreso = ?", [req.params.ingreso]);
-        res.status(200).json(respuesta);
-      } catch (e) {
-        res.status(413).send("error" + e);
-      }
-        
-    })
+        const respuesta =await query ("select * from presupuesto where id=?", [req.params.id,])
+        if (respuesta.length ==1 ){
+        res.status(200).json(respuesta);} else {res.status(413).send("no se encuentra el registro solicitado")}
+        } catch (e) {
+          res.status(413).send ("error" + e)
+        }
+    }); 
 
+    app.use("/presupuesto/:id", async (req, res)=> {
+      try{
+        const respuesta= await query ("select * from presupuesto where id=?", [req.params.id,]);
+        if (respuesta.length == 1) { await query ("delete from presupuesto where id=?", [req.params.id]);
+        res.status(200).send("Borrado con exito"); 
+          } else {
+            res.status(413).send("REGISTRO NO ENCONTRADO");
+          }
+      }
+    catch (e) {
+      res.status(404).send("error inesperado" + e);
+    }
+
+    });
+
+    
+    
     
