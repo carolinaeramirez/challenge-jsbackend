@@ -92,7 +92,6 @@ app.delete("/presupuesto/:id", async (req, res) => {
     const respuesta = await query("select * from presupuesto where id=?", [
       req.params.id,
     ]);
-
     if (respuesta.length == 1) {
       await query("delete from presupuesto where id=?", [req.params.id]);
       res.status(200).send("Borrado con exito");
@@ -104,7 +103,31 @@ app.delete("/presupuesto/:id", async (req, res) => {
   }
 });
 
+//modifico los datos
 
- 
+app.put("/presupuesto/:id", async (req, res) => {
+  try {
+    const fecha = req.body.fecha;
+    const concepto = req.body.concepto;
+    const monto = req.body.monto;
 
-
+    const respuesta = await query("select * from presupuesto where id=?", [
+      req.params.id,
+    ]);
+    if (respuesta.length > 0) {
+      const respuesta = await query(
+        "update presupuesto set fecha=?, concepto=?, monto=? where id=?",
+        [fecha, concepto, monto, req.params.id]
+      );
+      const registroModificado = await query(
+        "select * from presupuesto where id=?",
+        [req.params.id]
+      );
+      res.json(registroModificado[0]);
+    } else {
+      console.log("se rompio");
+    }
+  } catch (e) {
+    res.status(413).send("esta roto el try " + e);
+  }
+});
