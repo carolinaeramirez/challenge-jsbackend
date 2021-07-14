@@ -34,7 +34,7 @@ app.post("/presupuesto", async (req, res) => {
     const fecha = req.body.fecha;
     const concepto = req.body.concepto;
     const monto = req.body.monto;
-    const ingreso = req.body.ingreso;
+    const tipo = req.body.tipo;
 
     if (fecha == null || fecha.length == 0 || /^\s+$/.test(fecha)) {
       res.status(413).send("Ingrese la fecha");
@@ -47,8 +47,8 @@ app.post("/presupuesto", async (req, res) => {
       res.status(413).send("Ingresar Monto");
     } else {
       const respuesta = await query(
-        "insert into presupuesto (fecha, concepto, monto, ingreso) values (?, ?, ?, ?)",
-        [fecha, concepto, monto, ingreso]
+        "insert into presupuesto (fecha, concepto, monto, tipo) values (?, ?, ?, ?)",
+        [fecha, concepto, monto, tipo]
       );
       const registroInsertado = await query(
         "select * from presupuesto where id=?",
