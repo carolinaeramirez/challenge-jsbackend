@@ -86,6 +86,9 @@ app.get("/presupuesto/:id", async (req, res) => {
     res.status(413).send("error" + e);
   }
 });
+
+
+
 // borro un registro
 app.delete("/presupuesto/:id", async (req, res) => {
   try {
@@ -131,3 +134,22 @@ app.put("/presupuesto/:id", async (req, res) => {
     res.status(413).send("esta roto el try " + e);
   }
 });
+
+app.get("/ingresos", async (req, res) =>{
+  try{
+    var ingresos= await query ("select sum(monto) from presupuesto where tipo = 1"); 
+    res.status(200).send(ingresos);
+  }catch (e) {
+    res.status(413).send("NO SE REGISTRAN INGRESOS");
+  }
+}); 
+
+app.get("/egresos", async (req, res) =>{
+  try{
+    var egresos= await query ("select sum(monto) from presupuesto where tipo = 0 "); 
+    res.status(200).send(egresos);
+  }catch (e) {
+    res.status(413).send("NO SE REGISTRAN EGRESOS");
+  }
+}); 
+
