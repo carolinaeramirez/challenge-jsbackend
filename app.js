@@ -3,6 +3,7 @@ const mysql = require("mysql");
 const cors = require("cors");
 const util = require("util");
 const unless = require("express-unless");
+
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
@@ -54,12 +55,13 @@ app.post("/presupuesto", async (req, res) => {
         "select * from presupuesto where id=?",
         [respuesta.insertId]
       );
-      res.status(200).json(registroInsertado[0]);
+      res.status(200).json(registroInsertado[0]); 
     }
   } catch (e) {
     res.status(413).send("Error inesperado " + e);
   }
 });
+
 //traer lista
 
 app.get("/presupuesto", async (req, res) => {
@@ -78,7 +80,7 @@ app.get("/presupuesto/:id", async (req, res) => {
       req.params.id,
     ]);
     if (respuesta.length == 1) {
-      res.status(200).json(respuesta);
+      res.status(200).json(respuesta[0]);
     } else {
       res.status(413).send("no se encuentra el registro solicitado");
     }
@@ -137,8 +139,9 @@ app.put("/presupuesto/:id", async (req, res) => {
 
 app.get("/ingresos", async (req, res) =>{
   try{
-    var ingresos= await query ("select sum(monto) from presupuesto where tipo = 1"); 
-    res.status(200).send(ingresos);
+    const ingresos= await query ("select sum(monto) as INGRESOS from presupuesto where tipo = 1"); 
+    const resultingresos = Object.values(JSON.parse(JSON.stringify(ingresos[0])));
+    res.status(200).send(resultingresos.toString());
   }catch (e) {
     res.status(413).send("NO SE REGISTRAN INGRESOS");
   }
@@ -146,10 +149,28 @@ app.get("/ingresos", async (req, res) =>{
 
 app.get("/egresos", async (req, res) =>{
   try{
-    var egresos= await query ("select sum(monto) from presupuesto where tipo = 0 "); 
-    res.status(200).send(egresos);
+    const egresos= await query ("select sum (monto) as EGRESOS from presupuesto where tipo = 0 "); 
+    const resultegresos = Object.values(JSON.parse(JSON.stringify(egresos[0])));
+     res.status(200).send(resultegresos.toString());
+    
   }catch (e) {
     res.status(413).send("NO SE REGISTRAN EGRESOS");
   }
 }); 
 
+app.get("/balance", async (req, res) => {
+  try{
+    const ingresos= await query ("select sum(monto) as INGRESOS from presupuesto where tipo = 1"); 
+    const egresos= await query ("select sum(monto) as EGRESOS from presupuesto where tipo = 0 "); 
+    const resultingresos = Object.values(JSON.parse(JSON.stringify(ingresos[0])));
+    const resultegresos = Object.values(JSON.parse(JSON.stringify(egresos[0])));
+    res.status(200).send((resultingresos - resultegresos).toString());
+
+  }catch (e) {
+    res.status(413).send("error" + e);
+  }
+  
+  })
+//var mat = require ("./math");
+ // console.log ("balance es igual a " + mat.resta (parseInt(ingresos,10), parseInt(egresos,10)));
+  
