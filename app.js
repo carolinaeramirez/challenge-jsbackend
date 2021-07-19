@@ -171,6 +171,4 @@ app.get("/balance", async (req, res) => {
   }
   
   })
-//var mat = require ("./math");
- // console.log ("balance es igual a " + mat.resta (parseInt(ingresos,10), parseInt(egresos,10)));
-  
+
