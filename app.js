@@ -3,19 +3,18 @@ const mysql = require("mysql");
 const cors = require("cors");
 const util = require("util");
 const unless = require("express-unless");
-
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors());
 
-//conexion con la base de datos //
+const port = process.env.PORT ? process.env.PORT : 3000;
 
-const PORT = process.env.PORT ? process.env.PORT : 3000;
-
-app.listen(PORT, () => {
-  console.log("Esperando solicitudes ", PORT);
+app.listen(port, () => {
+  console.log("Esperando solicitudes ", port);
 });
 
 var conexion = mysql.createConnection({
@@ -28,8 +27,7 @@ conexion.connect();
 
 const query = util.promisify(conexion.query).bind(conexion);
 
-//agregar datos//
-
+// AGREGAR NUEVOS REGISTROS
 app.post("/presupuesto", async (req, res) => {
   try {
     const fecha = req.body.fecha;
@@ -55,25 +53,26 @@ app.post("/presupuesto", async (req, res) => {
         "select * from presupuesto where id=?",
         [respuesta.insertId]
       );
-      res.status(200).json(registroInsertado[0]); 
+      res.status(200).json(registroInsertado[0]);
     }
   } catch (e) {
     res.status(413).send("Error inesperado " + e);
   }
 });
 
-//traer lista
-
+//TRAER REGISTROS
 app.get("/presupuesto", async (req, res) => {
   try {
-    const respuesta = await query("select * from presupuesto");
+    const respuesta = await query(
+      "select * from presupuesto order by fecha desc limit 10"
+    );
     res.status(200).json(respuesta);
   } catch (e) {
-    res.status(413).send("error" + e);
+    res.status(413).send("Error" + e);
   }
 });
 
-//traer solo un resultado especifico
+//TRAER UN REGISTRO ESPECIFICO
 app.get("/presupuesto/:id", async (req, res) => {
   try {
     const respuesta = await query("select * from presupuesto where id=?", [
@@ -89,9 +88,7 @@ app.get("/presupuesto/:id", async (req, res) => {
   }
 });
 
-
-
-// borro un registro
+//BORRAR REGISTRO ESPECIFICO
 app.delete("/presupuesto/:id", async (req, res) => {
   try {
     const respuesta = await query("select * from presupuesto where id=?", [
@@ -101,15 +98,14 @@ app.delete("/presupuesto/:id", async (req, res) => {
       await query("delete from presupuesto where id=?", [req.params.id]);
       res.status(200).send("Borrado con exito");
     } else {
-      res.status(413).send("REGISTRO NO ENCONTRADO");
+      res.status(413).send("Registro no encontrado");
     }
   } catch (e) {
-    res.status(404).send("error inesperado" + e);
+    res.status(404).send("Error inesperado" + e);
   }
 });
 
-//modifico los datos
-
+//EDITAR REGISTRO ESPECIFICO 
 app.put("/presupuesto/:id", async (req, res) => {
   try {
     const fecha = req.body.fecha;
@@ -130,45 +126,56 @@ app.put("/presupuesto/:id", async (req, res) => {
       );
       res.json(registroModificado[0]);
     } else {
-      console.log("se rompio");
+      res.status(413).send("No se puede modificar el registro solicitado");
     }
   } catch (e) {
-    res.status(413).send("esta roto el try " + e);
+    res.status(413).send("Error " + e);
   }
 });
 
-app.get("/ingresos", async (req, res) =>{
-  try{
-    const ingresos= await query ("select sum(monto) as INGRESOS from presupuesto where tipo = 1"); 
-    const resultingresos = Object.values(JSON.parse(JSON.stringify(ingresos[0])));
+//TRAER REGISTROS "INGRESOS"
+app.get("/ingresos", async (req, res) => {
+  try {
+    const ingresos = await query(
+      "select sum(monto) as INGRESOS from presupuesto where tipo = 1"
+    );
+    const resultingresos = Object.values(
+      JSON.parse(JSON.stringify(ingresos[0]))
+    );
     res.status(200).send(resultingresos.toString());
-  }catch (e) {
-    res.status(413).send("NO SE REGISTRAN INGRESOS");
+  } catch (e) {
+    res.status(413).send("No se registran ingresos");
   }
-}); 
+});
 
-app.get("/egresos", async (req, res) =>{
-  try{
-    const egresos= await query ("select sum (monto) as EGRESOS from presupuesto where tipo = 0 "); 
+//TRAER REGISTROS "EGRESOS"
+app.get("/egresos", async (req, res) => {
+  try {
+    const egresos = await query(
+      "select sum (monto) as EGRESOS from presupuesto where tipo = 0 "
+    );
     const resultegresos = Object.values(JSON.parse(JSON.stringify(egresos[0])));
-     res.status(200).send(resultegresos.toString());
-    
-  }catch (e) {
-    res.status(413).send("NO SE REGISTRAN EGRESOS");
+    res.status(200).send(resultegresos.toString());
+  } catch (e) {
+    res.status(413).send("No se registran egresos");
   }
-}); 
+});
 
+// CALCULAR Y TRAER DIF ENTRE INGRESOS Y EGRESOS: "BALANCE". 
 app.get("/balance", async (req, res) => {
-  try{
-    const ingresos= await query ("select sum(monto) as INGRESOS from presupuesto where tipo = 1"); 
-    const egresos= await query ("select sum(monto) as EGRESOS from presupuesto where tipo = 0 "); 
-    const resultingresos = Object.values(JSON.parse(JSON.stringify(ingresos[0])));
+  try {
+    const ingresos = await query(
+      "select sum(monto) as INGRESOS from presupuesto where tipo = 1"
+    );
+    const egresos = await query(
+      "select sum(monto) as EGRESOS from presupuesto where tipo = 0 "
+    );
+    const resultingresos = Object.values(
+      JSON.parse(JSON.stringify(ingresos[0]))
+    );
     const resultegresos = Object.values(JSON.parse(JSON.stringify(egresos[0])));
     res.status(200).send((resultingresos - resultegresos).toString());
-
-  }catch (e) {
+  } catch (e) {
     res.status(413).send("error" + e);
   }
-  
-  })
-
+});
