@@ -3,8 +3,6 @@ const mysql = require("mysql");
 const cors = require("cors");
 const util = require("util");
 const unless = require("express-unless");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
@@ -88,6 +86,28 @@ app.get("/presupuesto/:id", async (req, res) => {
   }
 });
 
+// TRAER SOLO INGRESOS
+app.get("/tipoI", async (req, res)=>{
+  try{
+    const ingresos= await query("select * from presupuesto where tipo = 1" );
+    res.status(200).json(ingresos)
+
+  }catch (e) {
+    res.status(413).send("No hay ingresos para mostrar")
+  }
+
+});
+// TRAER SOLO Egresos
+app.get("/tipoE", async (req, res)=>{
+  try{
+    const egresos= await query("select * from presupuesto where tipo = 0" );
+    res.status(200).json(egresos)
+
+  }catch (e) {
+    res.status(413).send("No hay egresos para mostrar")
+  }
+
+});
 //BORRAR REGISTRO ESPECIFICO
 app.delete("/presupuesto/:id", async (req, res) => {
   try {
